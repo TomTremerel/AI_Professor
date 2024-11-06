@@ -5,4 +5,4 @@ langchain_google_genai
 langchain_community
 PyPDF2
 faiss-cpu
-tavily
+tavily-python
