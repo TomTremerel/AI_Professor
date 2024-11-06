@@ -131,7 +131,7 @@ with st.sidebar:
     <style>
         /* Restrict sidebar width and ensure it doesn’t cover main content */
         section[data-testid="stSidebar"] {
-            width: 350px; /* Adjust this to control sidebar width */
+            width: 600px; /* Adjust this to control sidebar width */
             max-width: 800px;
             background-color: #f0f2f6;
         }
