@@ -11,89 +11,17 @@ from langchain_community.vectorstores import FAISS
 from tavily import TavilyClient
 import base64
 import hashlib
-  
+from streamlit_pdf_viewer import pdf_viewer
+import os
+import tempfile 
 
 google_api_key = st.secrets['google_api_key']
 tvly_api_key = st.secrets['tvly_api_key']
 openai_api_key = st.secrets['openai_api_key']
 
-web_tool_search = TavilyClient(api_key=tvly_api_key)
+web_tool_search = TavilyClient(api_key= tvly_api_key)
 
-st.set_page_config(
-    page_title="AI Professor",
-    page_icon="👨‍🏫",
-    layout="wide"  
-)
-
-
-st.markdown("""
-    <style>
-    /* Main container responsiveness */
-    .main .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        max-width: 100%;
-    }
-    
-    /* Sidebar responsiveness */
-    .sidebar .sidebar-content {
-        width: 100%;
-    }
-    
-    /* Chat message containers */
-    .stChatMessage {
-        width: 100%;
-        max-width: 800px;
-        margin: 0 auto;
-    }
-    
-    /* PDF viewer responsiveness */
-    iframe {
-        width: 100% !important;
-        height: 70vh !important;
-        min-height: 400px;
-    }
-    
-    /* Responsive text sizing */
-    @media (max-width: 768px) {
-        .main .block-container {
-            padding: 0.5rem;
-        }
-        
-        h1 {
-            font-size: 1.5rem !important;
-        }
-        
-        p {
-            font-size: 0.9rem !important;
-        }
-    }
-    
-    /* Custom sidebar width control */
-    [data-testid="stSidebar"][aria-expanded="true"] {
-        min-width: 300px;
-        max-width: 500px;
-    }
-    
-    [data-testid="stSidebar"][aria-expanded="false"] {
-        min-width: 0px;
-    }
-    
-    /* Make buttons more touch-friendly on mobile */
-    .stButton button {
-        width: 100%;
-        margin: 0.5rem 0;
-        min-height: 44px;  /* Better touch targets */
-    }
-    
-    /* Improve file uploader responsiveness */
-    .stFileUploader {
-        width: 100%;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-
+st.set_page_config(page_title="AI Professor", page_icon="👨‍🏫" )
 st.title("👨‍🏫 AI Professor")
 
 def get_pdf_text(pdf_docs):
@@ -167,23 +95,134 @@ def get_youtube_url(query):
     
     return None
 
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = [
+        AIMessage(content="Hello, I am Chatbot professor assistant. How can I help you?"),
+    ]
+if "vector_store" not in st.session_state:
+    st.session_state.vector_store = None
 
-def displayPDF(uploaded_file):
-    if isinstance(uploaded_file, list):
-        for uploaded_file in uploaded_file:
-            bytes_data = uploaded_file.getvalue()
-            base64_pdf = base64.b64encode(bytes_data).decode('utf-8')
-            pdf_display = f'''
-                <div style="width: 100%; height: 100%; display: flex; justify-content: center;">
-                    <iframe 
-                        src="data:application/pdf;base64,{base64_pdf}" 
-                        style="width: 100%; height: 70vh; min-height: 400px; border: none;"
-                        type="application/pdf">
-                    </iframe>
-                </div>
-            '''
-            st.markdown(pdf_display, unsafe_allow_html=True)
 
+for message in st.session_state.chat_history:
+    if isinstance(message, AIMessage):
+        with st.chat_message("AI"):
+            st.write(message.content)
+    elif isinstance(message, HumanMessage):
+        with st.chat_message("Human"):
+            st.write(message.content)
+
+user_query = st.chat_input("Type your message here...")
+
+with st.sidebar:
+        st.title("Menu:")
+        pdf_docs = st.file_uploader("Upload your PDF Files ", accept_multiple_files=False, key="pdf_uploader")
+        quizz_button= st.button("🗒️ Make a quizz", type="primary")
+        video_button = st.button("📺 Search a video on the topic")
+        view = st.toggle("👁️ View PDF") 
+        if view and pdf_docs:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+                temp_file.write(pdf_docs.read())
+                temp_pdf_path = temp_file.name  
+
+
+            pdf_viewer(temp_pdf_path)
+            st.markdown(
+    """
+    <style>
+        /* Restrict sidebar width and ensure it doesn’t cover main content */
+        section[data-testid="stSidebar"] {
+            width: 800px; /* Adjust this to control sidebar width */
+            max-width: 800px;
+            background-color: #f0f2f6;
+        }
+
+        /* Make main container responsive to sidebar width */
+        .css-1lcbmhc { /* Main container class */
+            margin-left: 360px; /* Slightly larger than sidebar width */
+            padding: 1rem;
+        }
+
+        /* Control main content width for responsive behavior */
+        .block-container {
+            max-width: 800px; /* Prevent overlap */
+            margin: auto;
+        }
+
+        /* Styling adjustments for chat messages */
+        .stChatMessage {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+    )    
+            
+    
+if pdf_docs:
+        if "vector_store" not in st.session_state or st.session_state.vector_store is None:
+            text = get_pdf_text(pdf_docs)
+            text_chunks = get_text_chunks(text)
+            st.session_state.vector_store = get_vector_store(text_chunks)
+            st.success("The document is loaded")
+
+
+if user_query is not None and user_query != "": 
+
+
+    st.session_state.chat_history.append(HumanMessage(content=user_query))
+
+    with st.chat_message("Human"):
+        st.markdown(user_query,unsafe_allow_html=True)
+
+    with st.chat_message("AI"):
+        with st.spinner("Thinking..."):
+            response = (get_response(user_query, st.session_state.chat_history))
+            st.write(response)
+    st.session_state.chat_history.append(AIMessage(content=response))
+
+if quizz_button :
+            with st.spinner("Generating quiz..."):
+                quiz_prompt = """
+                Based on the document content, create a quiz with 5 multiple choice questions.
+                For each question:
+                1. Ask a clear, specific question
+                2. Provide 4 options labeled A, B, C, D
+                3. Make sure the options are plausible but distinct
+                4. Don't reveal the correct answer
+
+                Format each question like this:
+                Question X:
+                **A)**
+                **B)**
+                **C)**
+                **D)**
+                """ 
+                with st.chat_message("AI"):
+                    response = get_response(quiz_prompt, st.session_state.chat_history)
+                    st.write(response)
+                st.session_state.chat_history.append(AIMessage(content=response))
+
+
+if video_button :
+     with st.spinner("Searching for relevant video..."): 
+        video_prompt = """
+        Extract the main topic and key concepts from the document or from the last conversation in 3-4 words maximum.
+                Focus on the core subject matter only.
+                Do not include any additional text or explanation.
+                Example format: "machine learning neural networks" or "quantum computing basics"
+        """
+        with  st.chat_message("AI"):
+            response = get_response(video_prompt, st.session_state.chat_history)
+            youtube_url = get_youtube_url(f"Course on {response}")
+            if youtube_url:
+                            st.write(f"📺 Here's a video about {response}:")
+                            st.video(youtube_url)
+                        
+                            video_message = f"📺 Here's a video about {response}:\n{youtube_url}"
+                            st.session_state.chat_history.append(AIMessage(content=video_message))
+            
 def get_pdfs_hash(pdf_docs):
     combined_hash = hashlib.md5()
     if isinstance(pdf_docs, list):
@@ -197,206 +236,25 @@ def get_pdfs_hash(pdf_docs):
         pdf_docs.seek(0)  
     return combined_hash.hexdigest()
 
-with st.sidebar:
-    st.title("Menu:")
-    
-
-    col1, col2 = st.columns(2)
-    
-
-    pdf_docs = st.file_uploader(
-        "Upload your PDF Files",
-        accept_multiple_files=True,
-        key="pdf_uploader"
-    )
-    
-
-    with st.container():
-        quizz_button = st.button("🗒️ Make a quizz", type="primary", use_container_width=True)
-        video_button = st.button("📺 Search a video", type="secondary", use_container_width=True)
-        view = st.toggle("👁️ View PDF", value=False)
-        if view and pdf_docs:
-            st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)  
-            displayPDF(pdf_docs)
-            st.markdown("""
-                <style>
-                    /* Default styles for larger screens */
-                    section[data-testid="stSidebar"] {
-                        width: 500px !important;
-                        background-color: #f0f2f6;
-                    }
-                    
-                    section[data-testid="stSidebar"] > div {
-                        width: 100% !important;
-                        max-width: 800px;
-                        padding: 1rem;
-                        background-color: #f0f2f6;
-                    }
-                    
-                    section[data-testid="stSidebar"] .block-container {
-                        width: 100% !important;
-                        max-width: 500px;
-                        background-color: #f0f2f6;
-                    }
-                    
-                    /* Responsive styles for different screen sizes */
-                    @media (max-width: 1200px) {
-                        section[data-testid="stSidebar"] {
-                            width: 400px !important;
-                        }
-                        
-                        section[data-testid="stSidebar"] > div {
-                            max-width: 600px;
-                        }
-                        
-                        section[data-testid="stSidebar"] .block-container {
-                            max-width: 400px;
-                        }
-                    }
-                    
-                    @media (max-width: 992px) {
-                        section[data-testid="stSidebar"] {
-                            width: 300px !important;
-                        }
-                        
-                        section[data-testid="stSidebar"] > div {
-                            max-width: 400px;
-                        }
-                        
-                        section[data-testid="stSidebar"] .block-container {
-                            max-width: 300px;
-                        }
-                    }
-                    
-                    @media (max-width: 768px) {
-                        section[data-testid="stSidebar"] {
-                            width: 100% !important;
-                            min-width: 100%;
-                        }
-                        
-                        section[data-testid="stSidebar"] > div {
-                            width: 100% !important;
-                            max-width: 100%;
-                            padding: 0.5rem;
-                        }
-                        
-                        section[data-testid="stSidebar"] .block-container {
-                            width: 100% !important;
-                            max-width: 100%;
-                        }
-                        
-                        /* Adjust PDF viewer for mobile */
-                        iframe {
-                            height: 50vh !important;
-                            min-height: 300px;
-                        }
-                    }
-                    
-                    /* Improve PDF viewer container */
-                    .pdf-container {
-                        width: 100%;
-                        height: 100%;
-                        margin: 0 auto;
-                        overflow: hidden;
-                    }
-                    
-                    /* Ensure content doesn't overflow */
-                    .main .block-container {
-                        max-width: 100%;
-                        padding: 1rem;
-                        box-sizing: border-box;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
-
-
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [
-        AIMessage(content="Hello, I am Chatbot professor assistant. How can I help you?"),
-    ]
-
-
-chat_container = st.container()
-with chat_container:
-    for message in st.session_state.chat_history:
-        with st.chat_message("AI" if isinstance(message, AIMessage) else "Human"):
-            st.write(message.content)
-
-
-user_query = st.chat_input("Type your message here...")
-
-
-if pdf_docs:
-    if "vector_store" not in st.session_state or st.session_state.vector_store is None:
-        with st.spinner("Processing document..."):
-            text = get_pdf_text(pdf_docs)
-            text_chunks = get_text_chunks(text)
-            st.session_state.vector_store = get_vector_store(text_chunks)
-            st.success("The document is loaded")
-
-
-if user_query:
-    st.session_state.chat_history.append(HumanMessage(content=user_query))
-    
-    with st.chat_message("Human"):
-        st.markdown(user_query, unsafe_allow_html=True)
-    
-    with st.chat_message("AI"):
-        with st.spinner("Thinking..."):
-            response = get_response(user_query, st.session_state.chat_history)
-            st.write(response)
-    st.session_state.chat_history.append(AIMessage(content=response))
-
-if quizz_button:
-    with st.spinner("Generating quiz..."):
-        quiz_prompt = """
-        Based on the document content, create a quiz with 5 multiple choice questions.
-        For each question:
-        1. Ask a clear, specific question
-        2. Provide 4 options labeled A, B, C, D
-        3. Make sure the options are plausible but distinct
-        4. Don't reveal the correct answer
-
-        Format each question like this:
-        Question X:
-        **A)**
-        **B)**
-        **C)**
-        **D)**
-        """
-        with st.chat_message("AI"):
-            response = get_response(quiz_prompt, st.session_state.chat_history)
-            st.write(response)
-        st.session_state.chat_history.append(AIMessage(content=response))
-
-
-if video_button:
-    with st.spinner("Searching for relevant video..."):
-        video_prompt = """
-        Extract the main topic and key concepts from the document or from the last conversation in 3-4 words maximum.
-        Focus on the core subject matter only.
-        Do not include any additional text or explanation.
-        Example format: "machine learning neural networks" or "quantum computing basics"
-        """
-        with st.chat_message("AI"):
-            response = get_response(video_prompt, st.session_state.chat_history)
-            youtube_url = get_youtube_url(f"Course on {response}")
-            if youtube_url:
-                st.write(f"📺 Here's a video about {response}:")
-                st.video(youtube_url)
-                video_message = f"📺 Here's a video about {response}:\n{youtube_url}"
-                st.session_state.chat_history.append(AIMessage(content=video_message))
-
 
 if "current_pdfs_hash" not in st.session_state:
     st.session_state.current_pdfs_hash = None
 
 if pdf_docs:
     new_hash = get_pdfs_hash(pdf_docs)
+    
+    
     if new_hash != st.session_state.current_pdfs_hash:
-        with st.spinner("Updating documents..."):
-            text = get_pdf_text(pdf_docs)
-            text_chunks = get_text_chunks(text)
-            st.session_state.vector_store = get_vector_store(text_chunks)
-            st.session_state.current_pdfs_hash = new_hash
-            st.success("Documents have been updated!")
+        
+        text = get_pdf_text(pdf_docs)
+        text_chunks = get_text_chunks(text)
+        st.session_state.vector_store = get_vector_store(text_chunks)
+        st.session_state.current_pdfs_hash = new_hash
+        st.success("Documents has been updated !")
+    
+
+
+
+     
+    
+
