@@ -126,38 +126,38 @@ with st.sidebar:
 
 
             pdf_viewer(temp_pdf_path, width=800)
-            st.markdown(
-    f"""
+            st.markdown(    
+            """
     <style>
-        /* Adjust sidebar width based on selected size */
-        section[data-testid="stSidebar"] {{
-            width: 350px; /* Sidebar width relative to PDF viewer */
-            max-width: 900px;
+        /* Restrict sidebar width and ensure it doesn’t cover main content */
+        section[data-testid="stSidebar"] {
+            width: 350px; /* Adjust this to control sidebar width */
+            max-width: 800px;
             background-color: #f0f2f6;
-        }}
+        }
 
-        /* Main container with adjusted margin for sidebar */
-        .css-1lcbmhc {{
-            margin-left: {size + 60}px; /* Space for the sidebar */
+        /* Make main container responsive to sidebar width */
+        .css-1lcbmhc { /* Main container class */
+            margin-left: 360px; /* Slightly larger than sidebar width */
             padding: 1rem;
-        }}
+        }
 
         /* Control main content width for responsive behavior */
-        .block-container {{
-            max-width: {size + 50}px;
+        .block-container {
+            max-width: 800px; /* Prevent overlap */
             margin: auto;
-        }}
+        }
 
-        /* Ensure chat messages are aligned */
-        .stChatMessage {{
+        /* Styling adjustments for chat messages */
+        .stChatMessage {
             width: 100%;
-            max-width: {size + 50}px;
+            max-width: 800px;
             margin: 0 auto;
-        }}
+        }
     </style>
     """,
     unsafe_allow_html=True
-)    
+    )     
             
     
 if pdf_docs:
