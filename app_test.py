@@ -11,13 +11,13 @@ from langchain_community.vectorstores import FAISS
 from tavily import TavilyClient
 import base64
 import hashlib
-from dotenv import load_dotenv  
+  
 
 google_api_key = st.secrets['google_api_key']
 tvly_api_key = st.secrets['tvly_api_key']
 openai_api_key = st.secrets['openai_api_key']
 
-web_tool_search = TavilyClient(api_key='tvly_api_key')
+web_tool_search = TavilyClient(api_key=tvly_api_key)
 
 st.set_page_config(
     page_title="AI Professor",
