@@ -125,7 +125,7 @@ with st.sidebar:
                 temp_pdf_path = temp_file.name  
 
 
-            pdf_viewer(temp_pdf_path, width=800px)
+            pdf_viewer(temp_pdf_path, width=800)
             st.markdown(
     f"""
     <style>
