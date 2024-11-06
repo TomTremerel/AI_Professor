@@ -119,30 +119,20 @@ with st.sidebar:
         quizz_button= st.button("🗒️ Make a quizz", type="primary")
         video_button = st.button("📺 Search a video on the topic")
         view = st.toggle("👁️ View PDF")
-        size = st.select_slider("size the document",
-                                options=[
-                                     200,
-                                     300,
-                                     400,
-                                     500,
-                                     600,
-                                     700,
-                                     800,
-                                ]) 
         if view and pdf_docs:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
                 temp_file.write(pdf_docs.read())
                 temp_pdf_path = temp_file.name  
 
 
-            pdf_viewer(temp_pdf_path, width=size)
+            pdf_viewer(temp_pdf_path, width=800px)
             st.markdown(
     f"""
     <style>
         /* Adjust sidebar width based on selected size */
         section[data-testid="stSidebar"] {{
-            width: {size + 50}px; /* Sidebar width relative to PDF viewer */
-            max-width: {size + 50}px;
+            width: 350px; /* Sidebar width relative to PDF viewer */
+            max-width: 900px;
             background-color: #f0f2f6;
         }}
 
