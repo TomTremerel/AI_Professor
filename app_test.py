@@ -49,7 +49,6 @@ def get_vector_store(text_chunks):
     return vector_store
 
 def get_response(user_query, chat_history):
-
     template = """
     You are a helpful assistant. Answer the following questions considering the history of the conversation and the document provided:
 
@@ -95,13 +94,27 @@ def get_youtube_url(query):
     
     return None
 
+def get_pdfs_hash(pdf_docs):
+    combined_hash = hashlib.md5()
+    if isinstance(pdf_docs, list):
+        for pdf in pdf_docs:
+            content = pdf.read()
+            combined_hash.update(content)
+            pdf.seek(0)  
+    else:
+        content = pdf_docs.read()
+        combined_hash.update(content)
+        pdf_docs.seek(0)  
+    return combined_hash.hexdigest()
+
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [
         AIMessage(content="Hello, I am Chatbot professor assistant. How can I help you?"),
     ]
 if "vector_store" not in st.session_state:
     st.session_state.vector_store = None
-
+if "current_pdfs_hash" not in st.session_state:
+    st.session_state.current_pdfs_hash = None
 
 for message in st.session_state.chat_history:
     if isinstance(message, AIMessage):
@@ -124,12 +137,11 @@ with st.sidebar:
                 temp_file.write(pdf_docs.read())
                 temp_pdf_path = temp_file.name  
 
-
             pdf_viewer(temp_pdf_path, width=800)
             st.markdown(    
             """
     <style>
-        /* Restrict sidebar width and ensure it doesn’t cover main content */
+        /* Restrict sidebar width and ensure it doesn't cover main content */
         section[data-testid="stSidebar"] {
             width: 600px; /* Adjust this to control sidebar width */
             max-width: 800px;
@@ -161,16 +173,15 @@ with st.sidebar:
             
     
 if pdf_docs:
-        if "vector_store" not in st.session_state or st.session_state.vector_store is None:
+        new_hash = get_pdfs_hash(pdf_docs)
+        if new_hash != st.session_state.current_pdfs_hash:
             text = get_pdf_text(pdf_docs)
             text_chunks = get_text_chunks(text)
             st.session_state.vector_store = get_vector_store(text_chunks)
-            st.success("The document is loaded")
-
+            st.session_state.current_pdfs_hash = new_hash
+            st.success("The document has been updated!")
 
 if user_query is not None and user_query != "": 
-
-
     st.session_state.chat_history.append(HumanMessage(content=user_query))
 
     with st.chat_message("Human"):
@@ -221,37 +232,7 @@ if video_button :
                             st.video(youtube_url)
                         
                             video_message = f"📺 Here's a video about {response}:\n{youtube_url}"
-                            st.session_state.chat_history.append(AIMessage(content=video_message))
-            
-def get_pdfs_hash(pdf_docs):
-    combined_hash = hashlib.md5()
-    if isinstance(pdf_docs, list):
-        for pdf in pdf_docs:
-            content = pdf.read()
-            combined_hash.update(content)
-            pdf.seek(0)  
-    else:
-        content = pdf_docs.read()
-        combined_hash.update(content)
-        pdf_docs.seek(0)  
-    return combined_hash.hexdigest()
-
-
-if "current_pdfs_hash" not in st.session_state:
-    st.session_state.current_pdfs_hash = None
-
-if pdf_docs:
-    new_hash = get_pdfs_hash(pdf_docs)
-    
-    
-    if new_hash != st.session_state.current_pdfs_hash:
-        
-        text = get_pdf_text(pdf_docs)
-        text_chunks = get_text_chunks(text)
-        st.session_state.vector_store = get_vector_store(text_chunks)
-        st.session_state.current_pdfs_hash = new_hash
-        st.success("Documents has been updated !")
-    
+                            st.session_state.chat_history.append(AIMessage(content=video_message))    
 
 
 
