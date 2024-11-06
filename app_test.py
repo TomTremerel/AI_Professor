@@ -118,7 +118,17 @@ with st.sidebar:
         pdf_docs = st.file_uploader("Upload your PDF Files ", accept_multiple_files=False, key="pdf_uploader")
         quizz_button= st.button("🗒️ Make a quizz", type="primary")
         video_button = st.button("📺 Search a video on the topic")
-        view = st.toggle("👁️ View PDF") 
+        view = st.toggle("👁️ View PDF")
+        size = st.select_slider("size the document",
+                                options=[
+                                     200,
+                                     300,
+                                     400,
+                                     500,
+                                     600,
+                                     700,
+                                     800,
+                                ]) 
         if view and pdf_docs:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
                 temp_file.write(pdf_docs.read())
@@ -127,37 +137,37 @@ with st.sidebar:
 
             pdf_viewer(temp_pdf_path, width=800)
             st.markdown(
-    """
+    f"""
     <style>
-        /* Restrict sidebar width and ensure it doesn’t cover main content */
-        section[data-testid="stSidebar"] {
-            width: 800px; /* Adjust this to control sidebar width */
-            max-width: 800px;
+        /* Adjust sidebar width based on selected size */
+        section[data-testid="stSidebar"] {{
+            width: {size + 50}px; /* Sidebar width relative to PDF viewer */
+            max-width: {size + 50}px;
             background-color: #f0f2f6;
-        }
+        }}
 
-        /* Make main container responsive to sidebar width */
-        .css-1lcbmhc { /* Main container class */
-            margin-left: 360px; /* Slightly larger than sidebar width */
+        /* Main container with adjusted margin for sidebar */
+        .css-1lcbmhc {{
+            margin-left: {size + 60}px; /* Space for the sidebar */
             padding: 1rem;
-        }
+        }}
 
         /* Control main content width for responsive behavior */
-        .block-container {
-            max-width: 800px; /* Prevent overlap */
+        .block-container {{
+            max-width: {size + 50}px;
             margin: auto;
-        }
+        }}
 
-        /* Styling adjustments for chat messages */
-        .stChatMessage {
+        /* Ensure chat messages are aligned */
+        .stChatMessage {{
             width: 100%;
-            max-width: 800px;
+            max-width: {size + 50}px;
             margin: 0 auto;
-        }
+        }}
     </style>
     """,
     unsafe_allow_html=True
-    )    
+)    
             
     
 if pdf_docs:
