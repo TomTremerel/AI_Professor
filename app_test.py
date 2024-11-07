@@ -144,7 +144,7 @@ with st.sidebar:
         /* Restrict sidebar width and ensure it doesn't cover main content */
         section[data-testid="stSidebar"] {
             width: 600px; /* Adjust this to control sidebar width */
-            min-width: 600px
+            min-width: 600px;
             max-width: 800px;
             background-color: #f0f2f6;
         }
@@ -158,6 +158,7 @@ with st.sidebar:
         /* Control main content width for responsive behavior */
         .block-container {
             max-width: 800px; /* Prevent overlap */
+            min-width: 600px;
             margin: auto;
         }
 
