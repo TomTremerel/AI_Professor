@@ -144,6 +144,7 @@ with st.sidebar:
         /* Restrict sidebar width and ensure it doesn't cover main content */
         section[data-testid="stSidebar"] {
             width: 600px; /* Adjust this to control sidebar width */
+            min-width: 600px
             max-width: 800px;
             background-color: #f0f2f6;
         }
