@@ -1,4 +1,3 @@
-
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_openai import ChatOpenAI
@@ -9,10 +8,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from tavily import TavilyClient
-import base64
 import hashlib
 from streamlit_pdf_viewer import pdf_viewer
-import os
 import tempfile 
 
 google_api_key = st.secrets['google_api_key']
@@ -45,10 +42,9 @@ def get_text_chunks(text):
 def get_vector_store(text_chunks):
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=google_api_key)
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
-    vector_store.save_local("faiss_index")
     return vector_store
 
-def get_response(user_query, chat_history):
+def get_response(user_query, chat_history, vector_store):
     template = """
     You are a helpful assistant. Answer the following questions considering the history of the conversation and the document provided:
 
@@ -67,8 +63,7 @@ def get_response(user_query, chat_history):
     max_tokens=1024
     )
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=google_api_key)
-    new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-    docs = new_db.similarity_search(user_query)
+    docs = vector_store.similarity_search(user_query)
 
     context = "\n".join(doc.page_content for doc in docs)
 
@@ -191,7 +186,7 @@ if user_query is not None and user_query != "":
 
     with st.chat_message("AI"):
         with st.spinner("Thinking..."):
-            response = (get_response(user_query, st.session_state.chat_history))
+            response = (get_response(user_query, st.session_state.chat_history, st.session_state.vector_store))
             st.write(response)
     st.session_state.chat_history.append(AIMessage(content=response))
 
@@ -213,7 +208,7 @@ if quizz_button :
                 **D)**
                 """ 
                 with st.chat_message("AI"):
-                    response = get_response(quiz_prompt, st.session_state.chat_history)
+                    response = get_response(quiz_prompt, st.session_state.chat_history, st.session_state.vector_store)
                     st.write(response)
                 st.session_state.chat_history.append(AIMessage(content=response))
 
@@ -227,14 +222,14 @@ if video_button :
                 Example format: "machine learning neural networks" or "quantum computing basics"
         """
         with  st.chat_message("AI"):
-            response = get_response(video_prompt, st.session_state.chat_history)
+            response = get_response(video_prompt, st.session_state.chat_history, st.session_state.vector_store)
             youtube_url = get_youtube_url(f"Course on {response}")
             if youtube_url:
                             st.write(f"📺 Here's a video about {response}:")
                             st.video(youtube_url)
                         
                             video_message = f"📺 Here's a video about {response}:\n{youtube_url}"
-                            st.session_state.chat_history.append(AIMessage(content=video_message))    
+                            st.session_state.chat_history.append(AIMessage(content=video_message))   
 
 
 
