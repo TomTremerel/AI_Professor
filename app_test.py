@@ -190,6 +190,9 @@ if user_query is not None and user_query != "":
             st.write(response)
     st.session_state.chat_history.append(AIMessage(content=response))
 
+if pdf_docs is None :
+    st.write("Please upload your PDF course before starting the chat.")
+
 if quizz_button :
             with st.spinner("Generating quiz..."):
                 quiz_prompt = """
