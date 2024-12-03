@@ -58,7 +58,7 @@ def get_response(user_query, chat_history, vector_store):
     llm = ChatOpenAI(
     base_url = "https://api.groq.com/openai/v1",
     openai_api_key = openai_api_key,
-    model_name = "llama-3.1-8b-instant",
+    model_name = "llama-3.1-70b-versatile",
     temperature=1,
     max_tokens=1024
     )
